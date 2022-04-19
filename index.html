@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"
+        integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <title>Data</title>
+
+</head>
+
+<body>
+
+    <h1 onclick="$('#pure').toggle()">Data</h1>
+    <div id="pure" style="display: none;"></div>
+
+    <h1 onclick="$('#data').toggle()">Parse</h1>
+    <div id="data"></div>
+
+    <style>
+        h1 {
+            background-color: gray;
+            color: white;
+            margin: 10px 0;
+            padding: 10px .5em;
+            border-left: 5px solid red;
+            cursor: pointer;
+        }
+
+        #data {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto;
+            row-gap: 2em;
+        }
+
+        pre, div {
+            overflow-x: auto !important;
+            white-space: pre-wrap !important;
+            white-space: -moz-pre-wrap !important;
+            white-space: -pre-wrap !important;
+            white-space: -o-pre-wrap !important;
+            word-wrap: break-word !important;
+
+            padding: 10px;
+            margin: 0;
+        }
+
+        pre.source {
+            background-color: white;
+            color: black;
+
+        }
+
+        pre.parsed {
+            background-color: #222;
+            color: #ccc;
+        }
+
+    </style>
+
+    <script>
+        $().ready(() => {
+
+            $.ajax({
+                url: '/data',
+                method: 'GET',
+            })
+                .done((data) => {
+
+                    console.log(data);
+
+                    data.forEach(row => {
+
+                        $('#pure').append(`<div>${row.originData}</div><br><hr>`);
+
+                        // try {
+                        row = JSON.parse(row.originData);
+                        $('#data').append(`
+                                <pre class="source">${JSON.stringify(row)}</pre>
+                                <pre class="parsed">${JSON.stringify(row, undefined, 4)}</pre>`
+                        );
+                        // } catch (e) { console.log(e); }
+                    });
+
+
+                })
+
+                .fail((err) => {
+                    console.log("Err");
+                })
+        })
+
+    </script>
+
+
+</body>
+
+</html>
