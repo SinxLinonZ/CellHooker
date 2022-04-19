@@ -12,9 +12,6 @@ const app = express();
 app.use(express.json());
 const EXPRESS_PORT = 3000;
 
-// Global [session <=> username] cache
-global.GLB_SESSION_CACHE = {};
-
 // Database initialization
 const { MongoClient } = require('mongodb');
 
