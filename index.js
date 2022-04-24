@@ -1,16 +1,26 @@
-// self libs
+// Get settings from .env
+require('dotenv').config();
+
+// Global variables
+global.subscription = {};
+
+// local libs
 const { WSUnmask } = require('./lib/wsBufferReader.js');
 const Log = require('./lib/logging.js');
 const MSGHandler = require('./lib/message/messageHandler.js');
 
 // libs
-const path = require('path');
+// const path = require('path');
+const express = require('express');
+const ws = require('ws');
 
 // express initialization
-const express = require('express');
 const app = express();
 app.use(express.json());
 const EXPRESS_PORT = 3000;
+
+// Websocket server initialization
+const wsServer = new ws.Server({ noServer: true });
 
 // Database initialization
 const { MongoClient } = require('mongodb');
@@ -22,15 +32,62 @@ let db;
 
 
 /**
- * routes
+ * Web socket server events
  */
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname + '/index.html'));
+wsServer.on('connection', socket => {
+
+    console.log('New connection');
+
+    socket.on('message', (message) => {
+        console.log('Received message');
+
+        message = JSON.parse(message);
+
+        if (message.type == 'subscribe') {
+            socket.subscription = true;
+
+            for (const tag of message.data.cellTagsInitial) {
+                if (!global.subscription[tag]) {
+                    global.subscription[tag] = [];
+                }
+                global.subscription[tag].push(socket);
+            }
+        }
+    });
+
+    socket.on('error', (error) => {
+        console.log('socket err: ', error);
+
+        if (socket.subscription) {
+            for (const tag in global.subscription) {
+                if (global.subscription[tag].includes(socket)) {
+                    global.subscription[tag].splice(global.subscription[tag].indexOf(socket), 1);
+                }
+            }
+        }
+    });
+
+    socket.on('close', (code, reason) => {
+        console.log('socket close: ', code, reason);
+
+        if (socket.subscription) {
+            for (const tag in global.subscription) {
+                if (global.subscription[tag].includes(socket)) {
+                    global.subscription[tag].splice(global.subscription[tag].indexOf(socket), 1);
+                }
+            }
+        }
+    });
 });
 
+
+/**
+ * routes
+ */
 app.get('/data', async (req, res) => {
     // SELECT DATA FROM data
-    const data = await db.collection('originData').find({}).toArray();
+    // const data = await db.collection('originData').find({}).toArray();
+    const data = await db.collection('executions').find({}).toArray();
     res.send(data);
 });
 
@@ -55,6 +112,26 @@ app.post('/data', (req, res) => {
     return;
 });
 
+app.post('/api/executions', async (req, res) => {
+    const { username, tags } = req.body;
+
+    const data = {};
+    for await (const cellTags of tags) {
+        if (cellTags.length == 0) continue;
+
+        let cellData = await db.collection('executions')
+            .find({ tags: { $in: cellTags } }).toArray();
+        if (username) {
+            cellData = cellData.filter(item => item.username == username);
+        }
+        data[cellTags[0]] = cellData;
+    }
+
+    res.send(data);
+});
+
+
+app.use(express.static('views'));
 
 // Entry point
 (async () => {
@@ -71,12 +148,23 @@ app.post('/data', (req, res) => {
         Log.Info('Initializing message handler...');
         MSGHandler.Init(db);
         Log.Success('Message handler initialized.');
+
+        // Initialize ENV
+        process.env.IGNORE_MSGTYPE = JSON.parse(process.env.IGNORE_MSGTYPE);
+        process.env.IGNORE_CHANNEL = JSON.parse(process.env.IGNORE_CHANNEL);
     }
 
     catch (error) { Log.Err(error); }
     finally {
-        app.listen(EXPRESS_PORT, () => {
+        const server = app.listen(EXPRESS_PORT, () => {
             Log.Info(`Application listening on port ${EXPRESS_PORT}`);
+        });
+
+        // Handle websocket connection
+        server.on('upgrade', (request, socket, head) => {
+            wsServer.handleUpgrade(request, socket, head, (_socket) => {
+                wsServer.emit('connection', _socket, request);
+            });
         });
     }
 })();

@@ -75,10 +75,10 @@
 
                     data.forEach(row => {
 
-                        $('#pure').append(`<div>${row.originData}</div><br><hr>`);
+                        $('#pure').append(`<div>${JSON.stringify(row)}</div><br><hr>`);
 
                         // try {
-                        row = JSON.parse(row.originData);
+                        // row = JSON.parse(row);
                         $('#data').append(`
                                 <pre class="source">${JSON.stringify(row)}</pre>
                                 <pre class="parsed">${JSON.stringify(row, undefined, 4)}</pre>`

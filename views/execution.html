@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Execution</title>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"
+        integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+
+    <!-- Fomantic UI -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.8/dist/semantic.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.8/dist/semantic.min.js"></script>
+
+    <!-- xterm JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xterm/3.14.5/xterm.min.js"
+        integrity="sha512-2PRgAav8Os8vLcOAh1gSaDoNLe1fAyq8/G3QSdyjFFD+OqNjLeHE/8q4+S4MEZgPsuo+itHopj+hJvqS8XUQ8A=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/xterm/3.14.5/xterm.min.css"
+        integrity="sha512-iLYuqv+v/P4u9erpk+KM83Ioe/l7SEmr7wB6g+Kg1qmEit8EShDKnKtLHlv2QXUp7GGJhmqDI+1PhJYLTsfb8w=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+
+</head>
+
+<body>
+    <div class="ui container" style="padding-top: 1em;">
+
+
+        <div class="ui form">
+            <h4 class="ui dividing header">Filter</h4>
+
+            <div class="field">
+                <div class="three fields">
+                    <div class="field">
+                        <input id="username" type="text" placeholder="username">
+                    </div>
+                    <div class="field">
+                        <input id="tag" type="text" placeholder="tag">
+                    </div>
+                    <div class="field">
+                        <div id="btn_query" class="ui button primary">Query</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div id="display_main">
+        </div>
+
+
+
+    </div>
+
+
+    <style>
+        #display_main {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto;
+            row-gap: 2em;
+        }
+
+        pre,
+        #display_main div {
+            overflow-x: auto !important;
+            white-space: pre-wrap !important;
+            white-space: -moz-pre-wrap !important;
+            white-space: -pre-wrap !important;
+            white-space: -o-pre-wrap !important;
+            word-wrap: break-word !important;
+
+            padding: 10px;
+            margin: 0;
+        }
+
+        pre.source {
+            background-color: white;
+            color: black;
+
+        }
+
+        pre.parsed {
+            background-color: #222;
+            color: #ccc;
+        }
+    </style>
+
+
+    <script>
+
+        $(document).ready(() => {
+            /*************
+             * Event listeners
+             */
+
+            $('#btn_query').click(() => {
+                const username = $('#username').val();
+                let tag = $('#tag').val().trim();
+                tag = tag.split(/,\s*/).map(t => t.trim()).filter(t => t.length > 0);
+
+                $.ajax({
+                    url: 'api/executions',
+                    type: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    data: JSON.stringify({
+                        username: username,
+                        tag: tag
+                    }),
+                    success: (data) => {
+                        $('#display_main').html('');
+                        data.forEach(row => {
+                            $('#display_main').append(`
+                                <pre class="source">${JSON.stringify(row)}</pre>
+                                <pre class="parsed">${JSON.stringify(row, undefined, 4)}</pre>`
+                            );
+                        });
+                    }
+                });
+            })
+        });
+
+    </script>
+
+</body>
+
+</html>

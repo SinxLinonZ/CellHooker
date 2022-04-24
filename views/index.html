@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>TITLETITLETITLE</title>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"
+        integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+
+    <!-- Fomantic UI -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.8/dist/semantic.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.8.8/dist/semantic.min.js"></script>
+
+    <!-- xterm JS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@4.18.0/css/xterm.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/xterm@4.18.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.5.0/lib/xterm-addon-fit.min.js"></script>
+
+
+</head>
+
+<body>
+
+    <canvas style="display: none;" id="canvas"></canvas>
+
+    <div id="main_left">
+        <div id="header">
+            <img src="https://d1csarkz8obe9u.cloudfront.net/posterpreviews/testing-logo-design-template-ce84480d61b3db9a8e1522a99875832f_screen.jpg?ts=1615794516"
+                alt="#" height="64" width="64" style="place-self: center;">
+
+            <div id="nbTitle" ondrop="getFile(event);" ondragover="dragOverHandler(event);"
+                ondragenter="event.target.style.background = 'rgba(146, 146, 146, 0.4)';"
+                ondragleave="event.target.style.background = '';"
+                style="text-align: center; font-size: 1.6em; place-self: center; padding: 0 2em">
+                ipynbを<br>ここにドラッグ
+            </div>
+        </div>
+
+        <div id="sideList">
+            <div id="studentList">
+                <!-- Students will be filled here -->
+            </div>
+
+            <div id="cellList">
+                <!-- Student cells be filled here -->
+            </div>
+        </div>
+    </div>
+
+
+
+
+    <div id="main_right" data-student="" data-tag="">
+        <div>
+
+        </div>
+    </div>
+
+
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            display: grid;
+
+            grid-template-columns: 30% 70%;
+            grid-template-rows: auto;
+
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Scroll bar */
+        /* width */
+        ::-webkit-scrollbar {
+            width: 5px !important;
+        }
+
+        /* Track */
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1 !important;
+        }
+
+        /* Handle */
+        ::-webkit-scrollbar-thumb {
+            background: rgb(213, 191, 113) !important;
+            border-radius: 2.5px;
+        }
+
+        /* Handle on hover */
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgb(255, 200, 0) !important;
+            border-radius: 2.5px;
+        }
+
+        /* Left */
+        #main_left {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+
+            display: grid;
+            grid-template-rows: 10% 90%;
+            grid-template-columns: auto;
+        }
+
+        /* Left top */
+        #header {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+
+            display: grid;
+            grid-template-rows: auto;
+            grid-template-columns: 30% 70%;
+
+            border-bottom: 1px solid #f1f1f1;
+            border-right: 1px solid #f1f1f1;
+        }
+
+        /* Left list */
+        #sideList {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+
+            display: grid;
+            grid-template-rows: auto;
+            grid-template-columns: 60% 40%;
+        }
+
+        /* Student list */
+        #studentList {
+            height: 100%;
+            width: 100%;
+            overflow-x: hidden;
+            overflow-y: scroll;
+
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 30px;
+            grid-auto-rows: minmax(30px, 30px);
+
+            align-items: center;
+            justify-items: center;
+        }
+
+        #studentList>div {
+            height: 80%;
+            width: 90%;
+            padding: 0 5px;
+            cursor: pointer;
+        }
+
+        #studentList>div:hover {
+            border: black 1px solid;
+            border-radius: 5px;
+        }
+
+        /* Cell list */
+        #cellList {
+            height: 100%;
+            width: 100%;
+            overflow-x: hidden;
+            overflow-y: scroll;
+        }
+
+        #cellList .ui.segment {
+            cursor: pointer;
+            transition: transform 0.5s ease-out 0s;
+        }
+
+        #cellList .ui.segment:hover {
+            transform: translateX(+10px);
+        }
+
+        /* Main right */
+        #main_right {
+            height: 100%;
+            width: 100%;
+            overflow-x: hidden;
+            overflow-y: scroll;
+        }
+
+        #main_right>div {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto;
+            column-gap: 1em;
+        }
+
+        #main_right>div>div {
+            height: 100%;
+            width: 100%;
+            overflow: auto;
+        }
+    </style>
+
+    <script>
+        /*************
+         * Global variables
+         */
+        let a = 0;
+        let GLOBAL = {};
+        GLOBAL.cellTags = [];
+        GLOBAL.cellTagsInitial = [];
+        GLOBAL.students = {};
+        GLOBAL.ws = null;
+
+
+        /*************
+         * drag and drop handler
+         */
+        function getFile(ev) {
+            ev.preventDefault();
+            ev.target.style.background = '';
+            let file = ev.dataTransfer.files[0];
+
+            reader = new FileReader();
+            reader.onload = function (event) {
+                ParseNotebook(file.name, event.target.result);
+            };
+            reader.readAsText(file);
+        }
+
+        function dragOverHandler(e) {
+            e.preventDefault();
+        }
+
+        function ParseNotebook(fileName, string) {
+            // Set title area to loading status
+            $('#nbTitle').html('<div class="ui active centered inline loader"></div>');
+
+            // Clear cache data
+            GLOBAL.cellTags = [];
+            GLOBAL.cellTagsInitial = [];
+            GLOBAL.students = {};
+
+
+            /**
+             ** Notebook parsing
+             */
+            let notebook;
+            try {
+                notebook = JSON.parse(string);
+            } catch (e) {
+                $('body').toast({
+                    message: 'Invalid ipynb file',
+                    class: 'error'
+                });
+                $('#nbTitle').html('ipynbを<br>ここにドラッグ');
+                return;
+            }
+
+
+            /**
+             ** cell checks 
+             */
+            let flag_noTags = true;
+            let flag_noCodeCell = true;
+            // no cell
+            if (!notebook.cells || notebook.cells.length == 0) {
+                $('body').toast({
+                    message: 'No cells in ipynb file',
+                    class: 'error'
+                });
+                $('#nbTitle').html('ipynbを<br>ここにドラッグ');
+                return;
+            }
+            // no code cell or no tags
+            for (let i = 0; i < notebook.cells.length; i++) {
+                const cell = notebook.cells[i];
+                if (cell.cell_type == 'code') {
+                    flag_noCodeCell = false;
+                }
+                if (cell.metadata.tags && cell.metadata.tags.length > 0) {
+                    flag_noTags = false;
+                }
+            }
+            if (flag_noCodeCell) {
+                $('body').toast({
+                    message: 'No code cell in ipynb file',
+                    class: 'error'
+                });
+                $('#nbTitle').html('ipynbを<br>ここにドラッグ');
+                return;
+            }
+            if (flag_noTags) {
+                $('body').toast({
+                    message: 'No tags in ipynb file',
+                    class: 'error'
+                });
+                $('#nbTitle').html('ipynbを<br>ここにドラッグ');
+                return;
+            }
+
+
+            // Cache all cell tags
+            for (let i = 0; i < notebook.cells.length; i++) {
+                const cell = notebook.cells[i];
+
+                if (cell.cell_type == 'code'
+                    && cell.metadata.tags
+                    && cell.metadata.tags.length > 0) {
+                    GLOBAL.cellTags.push(cell.metadata.tags);
+                }
+            }
+
+
+            /**
+             ** UI Rendering
+             **/
+            // Display file title
+            let lectureName = notebook.metadata.lectureName || fileName;
+            $('#nbTitle').html(lectureName);
+
+
+            GetExecutionData();
+        }
+
+
+        function GetExecutionData() {
+
+            // List display loading status
+            $('#studentList').html(`<div class="ui double loading form" style="height: 100%; width: 100%; grid-column-start: 1; grid-column-end: -1;"></div>`);
+            $('#cellList').html(`<div class="ui double loading form" style="height: 100%; width: 100%"></div>`);
+
+            $.ajax({
+                url: 'api/executions',
+                type: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                data: JSON.stringify({
+                    tags: GLOBAL.cellTags
+                }),
+
+                success: (data) => {
+                    // Cache tag initial list
+                    for (const cellTag in data) {
+                        GLOBAL.cellTagsInitial.push(cellTag);
+                    }
+
+
+                    // Initialize all students data
+                    GLOBAL.students = {};
+                    for (const cellTag in data) {
+                        const executions = data[cellTag];
+                        for (const execution of executions) {
+                            // Init student if not exist
+                            if (!GLOBAL.students[execution.username]) {
+                                GLOBAL.students[execution.username] = {};
+                                for (const tagInitial of GLOBAL.cellTagsInitial) {
+                                    GLOBAL.students[execution.username][tagInitial] = [];
+                                }
+                            }
+
+                            GLOBAL.students[execution.username][cellTag].push(execution);
+                        }
+                    }
+
+                    // Clear loading status UI
+                    $('#studentList').empty();
+                    $('#cellList').empty();
+                    $('#main_right').empty();
+
+                    RenderStudentList();
+                    RegisterSubscription();
+                }
+            });
+        }
+
+        function RenderStudentList() {
+            // Init canvas to draw student progress bar
+            let canvas = document.getElementById('canvas');
+            let ctx = canvas.getContext('2d');
+
+            for (const student in GLOBAL.students) {
+                RenderStudentProgress(canvas, ctx, student);
+            }
+        }
+
+        function RenderStudentProgress(canvas, ctx, student) {
+            const studentData = GLOBAL.students[student];
+            let targetDiv = document.getElementById(`student_${student}`);
+            if (!targetDiv) {
+                $('#studentList').append(`<div id="student_${student}" onclick="RenderStudentCellList('${student}')">${student}</div>`);
+            }
+            targetDiv = document.getElementById(`student_${student}`);
+
+            ctx.canvas.height = targetDiv.clientHeight
+            ctx.canvas.width = targetDiv.clientWidth
+
+            // Fill background
+            ctx.fillStyle = "#eeeeee";
+            ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+            // Get unit length to draw progress
+            let unit = ctx.canvas.width / GLOBAL.cellTagsInitial.length;
+
+            // Get success & failed cells
+            let failed = [];
+            let succeed = [];
+            for (const cellTag in studentData) {
+                let cellExecutions = studentData[cellTag];
+                let succeedCount = cellExecutions.filter(e => e.result == 'ok').length;
+                let failedCount = cellExecutions.filter(e => e.result == 'error').length;
+                if (succeedCount > 0) succeed.push(cellTag);
+                if (failedCount > 0) failed.push(cellTag);
+            }
+
+            // Fill total progress
+            ctx.fillStyle = "#84db69";
+            ctx.fillRect(0, 0, unit * succeed.length, ctx.canvas.height * 0.8);
+
+            // Fill failed & success blocks
+            ctx.fillStyle = "#ff0000";
+            for (const failedCellTag of failed) {
+                let failedCellIndex = GLOBAL.cellTagsInitial.indexOf(failedCellTag);
+                ctx.fillRect(unit * failedCellIndex, ctx.canvas.height * 0.8,
+                    unit, ctx.canvas.height * 0.2);
+            }
+            ctx.fillStyle = "#00ff00";
+            for (const succeedCellTag of succeed) {
+                let succeedCellIndex = GLOBAL.cellTagsInitial.indexOf(succeedCellTag);
+                ctx.fillRect(unit * succeedCellIndex, ctx.canvas.height * 0.8,
+                    unit, ctx.canvas.height * 0.2);
+            }
+
+            // Draw line split two progress
+            ctx.strokeStyle = "#000000";
+            ctx.beginPath();
+            ctx.moveTo(0, ctx.canvas.height * 0.8);
+            ctx.lineTo(ctx.canvas.width, ctx.canvas.height * 0.8);
+            ctx.stroke();
+
+            // Set student progress
+            targetDiv.style.background = `url("${canvas.toDataURL()}") no-repeat`;
+        }
+
+        function RenderStudentCellList(student) {
+            $('#cellList').html('<div class="ui basic segments"></div>');
+
+            // Student not found
+            const studentData = GLOBAL.students[student];
+            if (!studentData) return;
+
+            // Render cell list
+            for (const cellTagsInitial of GLOBAL.cellTagsInitial) {
+                $('#cellList .ui.basic.segments').append(
+                    `<div class="ui segment grey inverted" data-student="${student}" id="cell_${cellTagsInitial}" onclick="RenderStudentCells('${student}', '${cellTagsInitial}')">
+                        <p>${cellTagsInitial}</p>
+                    </div>`);
+            }
+
+            // Render failed & succeed cells
+            for (const cellTagsInitial in studentData) {
+                const executions = studentData[cellTagsInitial];
+                let succeedCount = executions.filter(e => e.result == 'ok').length;
+                let failedCount = executions.filter(e => e.result == 'error').length;
+
+                if (failedCount > 0) {
+                    $('#cell_' + cellTagsInitial).removeClass('grey');
+                    $('#cell_' + cellTagsInitial).addClass('red');
+                }
+                if (succeedCount > 0) {
+                    $('#cell_' + cellTagsInitial).removeClass('grey red');
+                    $('#cell_' + cellTagsInitial).addClass('green');
+                }
+            }
+        }
+
+        function RenderStudentCells(student, cellTagInitial) {
+            $('#main_right').empty();
+            $('#main_right').data('student', student);
+            $('#main_right').data('tag', cellTagInitial);
+
+            let executions = GLOBAL.students[student][cellTagInitial];
+            if (!executions) return;
+
+            let term;
+            const fitAddon = new FitAddon.FitAddon();
+
+            for (const execution of executions.slice().reverse()) {
+                $('#main_right').append(
+                    `<h2>${execution.result}</h2>
+                    <div>
+                        <div id="${execution._id}_code"></div>
+                        <div id="${execution._id}_output"></div>
+                    </div>`);
+
+                // Render user code
+                term = new Terminal({ convertEol: true });
+                term.loadAddon(fitAddon);
+                term.open(document.getElementById(`${execution._id}_code`));
+                fitAddon.fit();
+                term.write(execution.code);
+
+                // Render output
+                // execution failed
+                if (execution.result != 'ok') {
+                    term = new Terminal({ convertEol: true });
+                    term.loadAddon(fitAddon);
+                    term.open(document.getElementById(`${execution._id}_output`));
+                    fitAddon.fit();
+                    term.write(execution.errName + '\n' + execution.errValue + '\n\n');
+                    for (const errLine of execution.STDtraceback) {
+                        term.write(errLine);
+                    }
+                }
+                // execution success & has stdout
+                else {
+                    if (execution.output.stdout.length > 0) {
+                        term = new Terminal({ convertEol: true });
+                        term.loadAddon(fitAddon);
+                        term.open(document.getElementById(`${execution._id}_output`));
+                        fitAddon.fit();
+                        for (const outLine of execution.output.stdout) {
+                            term.write(outLine);
+                        }
+                    }
+                }
+
+                // render image if has
+                if (execution.output['image/png'].length > 0) {
+                    $(`#${execution._id}_output`).append(`<img src="data:image/png;base64, ${execution.output['image/png'][0].base64}">`);
+                }
+            }
+
+
+        }
+
+
+
+        function RegisterSubscription() {
+            if (GLOBAL.ws) {
+                GLOBAL.ws.close();
+            }
+
+            GLOBAL.ws = new WebSocket(`ws://${location.host}/`);
+            GLOBAL.ws.onopen = function () {
+                GLOBAL.ws.send(JSON.stringify({
+                    type: 'subscribe',
+                    data: {
+                        cellTagsInitial: GLOBAL.cellTagsInitial,
+                    }
+                }));
+            };
+
+            GLOBAL.ws.onmessage = function (event) {
+                let data = JSON.parse(event.data);
+
+                // console.log(data);
+
+                // Init student if not exist
+                if (!GLOBAL.students[data.username]) {
+                    GLOBAL.students[data.username] = {};
+                    for (const tagInitial of GLOBAL.cellTagsInitial) {
+                        GLOBAL.students[data.username][tagInitial] = [];
+                    }
+                }
+
+                // Add execution to student
+                GLOBAL.students[data.username][data.tags[0]].push(data);
+
+                // Render student button & progress
+                let canvas = document.getElementById('canvas');
+                let ctx = canvas.getContext('2d');
+                RenderStudentProgress(canvas, ctx, data.username);
+
+                // Re-render student cell list if displayed
+                let cellButton = $('#cell_' + data.tags[0]);
+                if (cellButton.data('student') == data.username) {
+                    if (!cellButton.hasClass('green')) {
+                        if (data.result == 'ok') {
+                            cellButton.removeClass('grey red');
+                            cellButton.addClass('green');
+                        }
+                        else {
+                            cellButton.removeClass('grey');
+                            cellButton.addClass('red');
+                        }
+                    }
+                }
+
+                // Re-render current display if needed
+                if ($('#main_right').data('student') == data.username
+                    && $('#main_right').data('tag') == data.tags[0]) {
+                    RenderStudentCells(data.username, data.tags[0]);
+                }
+
+            }
+        }
+
+
+
+
+        $(document).ready(() => {
+
+            /*************
+             * Event listeners
+             */
+
+            // const username = $('#username').val();
+            // let tag = $('#tag').val().trim();
+            // tag = tag.split(/,\s*/).map(t => t.trim()).filter(t => t.length > 0);
+
+
+        });
+
+    </script>
+
+</body>
+
+</html>
