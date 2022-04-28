@@ -488,6 +488,8 @@
             let term;
             const fitAddon = new FitAddon.FitAddon();
 
+            $('#main_right').append(
+                    `<h1>${student}</h1><hr>`);
             for (const execution of executions.slice().reverse()) {
                 $('#main_right').append(
                     `<h2>${execution.result}</h2>

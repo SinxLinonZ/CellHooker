@@ -13,6 +13,7 @@ const MSGHandler = require('./lib/message/messageHandler.js');
 // const path = require('path');
 const express = require('express');
 const ws = require('ws');
+const cors = require('cors');
 
 // express initialization
 const app = express();
@@ -80,6 +81,13 @@ wsServer.on('connection', socket => {
     });
 });
 
+
+app.use(cors({
+    credentials: true,
+    preflightContinue: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    origin: true,
+}));
 
 /**
  * routes
