@@ -108,7 +108,7 @@ app.post('/data', (req, res) => {
 
     // Ignore heartbeat data
     if (msgList.length == 0) return;
-    MSGHandler.HandleMessage(msgList);
+    MSGHandler.Push(msgList);
 
     Log.Msg(`Received ${msgList.length} ${dataType} messages from ${dataSide}`);
     res.send('ok');
