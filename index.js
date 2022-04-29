@@ -10,7 +10,6 @@ const Log = require('./lib/logging.js');
 const MSGHandler = require('./lib/message/messageHandler.js');
 
 // libs
-// const path = require('path');
 const express = require('express');
 const ws = require('ws');
 const cors = require('cors');
@@ -18,14 +17,12 @@ const cors = require('cors');
 // express initialization
 const app = express();
 app.use(express.json());
-const EXPRESS_PORT = 3000;
 
 // Websocket server initialization
 const wsServer = new ws.Server({ noServer: true });
 
 // Database initialization
 const { MongoClient } = require('mongodb');
-
 const url = 'mongodb://localhost:27017';
 const dbName = 'test_msg';
 const client = new MongoClient(url);
@@ -93,8 +90,6 @@ app.use(cors({
  * routes
  */
 app.get('/data', async (req, res) => {
-    // SELECT DATA FROM data
-    // const data = await db.collection('originData').find({}).toArray();
     const data = await db.collection('executions').find({}).toArray();
     res.send(data);
 });
@@ -139,8 +134,6 @@ app.post('/api/executions', async (req, res) => {
 });
 
 
-app.use(express.static('views'));
-
 // Entry point
 (async () => {
     try {
@@ -164,8 +157,8 @@ app.use(express.static('views'));
 
     catch (error) { Log.Err(error); }
     finally {
-        const server = app.listen(EXPRESS_PORT, () => {
-            Log.Info(`Application listening on port ${EXPRESS_PORT}`);
+        const server = app.listen(process.env.PORT || 3000, () => {
+            Log.Info(`Application listening on port ${process.env.PORT || 3000}`);
         });
 
         // Handle websocket connection
