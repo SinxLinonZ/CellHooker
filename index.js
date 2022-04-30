@@ -16,7 +16,7 @@ const cors = require('cors');
 
 // express initialization
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // Websocket server initialization
 const wsServer = new ws.Server({ noServer: true });
