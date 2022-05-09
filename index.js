@@ -44,11 +44,11 @@ wsServer.on('connection', socket => {
         if (message.type == 'subscribe') {
             socket.subscription = true;
 
-            for (const tag of message.data.cellTagsInitial) {
-                if (!global.subscription[tag]) {
-                    global.subscription[tag] = [];
+            for (const uuid of message.data.uuidList) {
+                if (!global.subscription[uuid]) {
+                    global.subscription[uuid] = [];
                 }
-                global.subscription[tag].push(socket);
+                global.subscription[uuid].push(socket);
             }
         }
     });
@@ -57,9 +57,9 @@ wsServer.on('connection', socket => {
         console.log('socket err: ', error);
 
         if (socket.subscription) {
-            for (const tag in global.subscription) {
-                if (global.subscription[tag].includes(socket)) {
-                    global.subscription[tag].splice(global.subscription[tag].indexOf(socket), 1);
+            for (const uuid in global.subscription) {
+                if (global.subscription[uuid].includes(socket)) {
+                    global.subscription[uuid].splice(global.subscription[uuid].indexOf(socket), 1);
                 }
             }
         }
@@ -69,9 +69,9 @@ wsServer.on('connection', socket => {
         console.log('socket close: ', code, reason);
 
         if (socket.subscription) {
-            for (const tag in global.subscription) {
-                if (global.subscription[tag].includes(socket)) {
-                    global.subscription[tag].splice(global.subscription[tag].indexOf(socket), 1);
+            for (const uuid in global.subscription) {
+                if (global.subscription[uuid].includes(socket)) {
+                    global.subscription[uuid].splice(global.subscription[uuid].indexOf(socket), 1);
                 }
             }
         }
@@ -116,18 +116,16 @@ app.post('/data', (req, res) => {
 });
 
 app.post('/api/executions', async (req, res) => {
-    const { username, tags } = req.body;
+    const { username, uuidList } = req.body;
 
     const data = {};
-    for await (const cellTags of tags) {
-        if (cellTags.length == 0) continue;
-
+    for await (const uuid of uuidList) {
         let cellData = await db.collection('executions')
-            .find({ tags: { $in: cellTags } }).toArray();
+            .find({ uuid: uuid }).toArray();
         if (username) {
             cellData = cellData.filter(item => item.username == username);
         }
-        data[cellTags[0]] = cellData;
+        data[uuid] = cellData;
     }
 
     res.send(data);
