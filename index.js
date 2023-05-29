@@ -24,7 +24,7 @@ const wsServer = new ws.Server({ noServer: true });
 // Database initialization
 const { MongoClient } = require('mongodb');
 const url = 'mongodb://127.0.0.1:27017';
-const dbName = 'test_msg';
+const dbName = 'test_msg2';
 const client = new MongoClient(url);
 let db;
 
@@ -107,12 +107,16 @@ app.post('/data', (req, res) => {
     const msgList = WSUnmask(bufferData);
 
     // Ignore heartbeat data
-    if (msgList.length == 0) return;
+    if (msgList.length == 0) {
+        res.send('ok');
+        res.end();
+        return;
+    }
     MSGHandler.Push(msgList);
 
     Log.Msg(`Received ${msgList.length} ${dataType} messages from ${dataSide}`);
     res.send('ok');
-    return;
+    res.end();
 });
 
 app.post('/api/executions', async (req, res) => {
