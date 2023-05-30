@@ -105,36 +105,8 @@ app.post('/data', (req, res) => {
     // const dataType = recvData.data.type;
     // const dataRaw = recvData.data.data;
 
-    // console.log(dataSide);
-    // console.log(dataUUID);
-    // console.log(dataType);
-    // console.log(dataRaw);
-
     MSGHandler.Push(recvData);
-
-
-    // const recvData = req.body;
-
-    // // Get the data from the request
-    // const dataSide = recvData.side;
-    // const dataType = recvData.data.type;
-    // const dataRaw = recvData.data.data;
-
-    // // Convert Raw data to readable message list
-    // const bufferData = Buffer.from(dataRaw);
-    // const msgList = WSUnmask(bufferData);
-
-    // // Ignore heartbeat data
-    // if (msgList.length == 0) {
-    //     res.send('ok');
-    //     res.end();
-    //     return;
-    // }
-    // MSGHandler.Push(msgList);
-
     // Log.Msg(`Received ${msgList.length} ${dataType} messages from ${dataSide}`);
-    // res.send('ok');
-    // res.end();
 });
 
 app.post('/api/executions', async (req, res) => {
